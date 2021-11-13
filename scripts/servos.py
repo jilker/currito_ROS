@@ -14,7 +14,7 @@ if __name__ == "__main__":
     servo = Servo()
     rate = rospy.Rate(1)
     while not rospy.is_shutdown():
-        value = input("value: ")
+        value = int(input("value: "))
         servo.move(value)
         rate.sleep()
 
