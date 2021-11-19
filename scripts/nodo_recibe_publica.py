@@ -40,12 +40,13 @@ class CurritoController():
 
 
     def control_automatico(self):
-
-        self.ceja_izq_consigna = 0
-        self.ceja_der_consigna = 0
-        self.cresta_consigna = 0
-        self.cuello_consigna = 0
-        self.cuerpo_consigna = 0
+        # TODO: Movimiento automatico
+        # self.ceja_izq_consigna = 0
+        # self.ceja_der_consigna = 0
+        # self.cresta_consigna = 0
+        # self.cuello_consigna = 0
+        # self.cuerpo_consigna = 0
+        pass
 
     def start_record(self):
 
