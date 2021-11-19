@@ -11,10 +11,12 @@
 #include <std_msgs/UInt16.h>
 
 #define PIN_CEJA_IZQ 11
-#define PIN_CEJA_DER 9
-#define PIN_CRESTA 3
-#define PIN_CUELLO 3
-#define PIN_CUERPO 2
+#define PIN_CEJA_DER 10
+#define PIN_CRESTA 9
+#define PIN_BOCA 8          // SU CODIGO NO EST HECHO
+#define PIN_CUELLO 7
+// Leds en pin 6
+#define PIN_CUERPO 5
 #define PIN_RUEDA_IZQ 8
 #define PIN_RUEDA_DER 7
 
