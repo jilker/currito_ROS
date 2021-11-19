@@ -11,28 +11,30 @@
 #include <std_msgs/UInt16.h>
 
 #define PIN_CEJA_IZQ 11
-#define PIN_CEJA_DER 9
-#define PIN_CRESTA 3
-#define PIN_CUELLO 3
-#define PIN_CUERPO 2
+#define PIN_CEJA_DER 10
+#define PIN_CRESTA 9
+#define PIN_BOCA 8          // SU CODIGO NO EST HECHO
+#define PIN_CUELLO 7
+// Leds en pin 6
+#define PIN_CUERPO 5
 #define PIN_RUEDA_IZQ 8
 #define PIN_RUEDA_DER 7
 
-#define MIN_CEJA_IZQ 1000
-#define MIN_CEJA_DER 1000
-#define MIN_CRESTA 1000
-#define MIN_CUELLO 1000
-#define MIN_CUERPO 1000
-#define MIN_RUEDA_IZQ 1000
-#define MIN_RUEDA_DER 1000
+#define MIN_CEJA_IZQ 544
+#define MIN_CEJA_DER 544
+#define MIN_CRESTA 544
+#define MIN_CUELLO 544
+#define MIN_CUERPO 544
+#define MIN_RUEDA_IZQ 544
+#define MIN_RUEDA_DER 544
 
-#define MAX_CEJA_IZQ 2000
-#define MAX_CEJA_DER 2000
-#define MAX_CRESTA 2000
-#define MAX_CUELLO 2000
-#define MAX_CUERPO 2000
-#define MAX_RUEDA_IZQ 2000
-#define MAX_RUEDA_DER 2000
+#define MAX_CEJA_IZQ 2400
+#define MAX_CEJA_DER 2400
+#define MAX_CRESTA 2400
+#define MAX_CUELLO 2400
+#define MAX_CUERPO 2400
+#define MAX_RUEDA_IZQ 2400
+#define MAX_RUEDA_DER 2400
 
 ros::NodeHandle nh;
 
@@ -41,7 +43,7 @@ class Body
 public:
   /*Funciones*/
   Body()
-      : subscriber_("/joy", &Body::set_period_callback, this)
+      : subscriber_("/joy2", &Body::set_period_callback, this)
   {
   }
   //    void detach(Servo);
@@ -58,9 +60,9 @@ public:
     cuello_.attach(PIN_CUELLO, MIN_CUELLO, MAX_CUELLO);
     cuerpo_.attach(PIN_CUERPO, MIN_CUERPO, MAX_CUERPO);
     rueda_izq_.attach(PIN_RUEDA_IZQ, MIN_RUEDA_IZQ, MAX_RUEDA_IZQ);
-    rueda_der_.attach(PIN_RUEDA_DER, MIN_RUEDA_DER, MAX_RUEDA_DER);
+    rueda_der_.attach(PIN_RUEDA_DER);
     ceja_izq_consigna_ = 0;
-    ceja_der_consigna_ = 5;
+    ceja_der_consigna_ = 0;
     cresta_consigna_ = 0;
     cuello_consigna_ = 0;
     cuerpo_consigna_ = 0;
@@ -92,11 +94,11 @@ public:
 
   void set_period_callback(const sensor_msgs::Joy &msg)
   {
-    ceja_izq_consigna_ = (msg.axes[1] + 1) / 2 * 175;
-    ceja_der_consigna_ = (msg.axes[1] + 1) / 2 * 175;
-    cuello_consigna_ = (msg.axes[3] + 1) / 2 * 175;
-    cresta_consigna_ = (msg.axes[4] + 1) / 2 * 175;
-    cuerpo_consigna_ = (msg.axes[5] + 1) / 2 * 175;
+    ceja_izq_consigna_ = msg.axes[1];
+    ceja_der_consigna_ = msg.axes[1];
+    cuello_consigna_ = msg.axes[3];
+    cresta_consigna_ = msg.axes[4];
+    cuerpo_consigna_ = msg.axes[5];
   }
 
 private:
