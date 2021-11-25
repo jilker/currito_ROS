@@ -12,13 +12,16 @@ class CurritoController():
         self.cresta_consigna = 0
         self.cuello_consigna = 0
         self.cuerpo_consigna = 0
+        self.boca_consigna = 0
+        self.rueda_izq_consigna = 0
+        self.rueda_der_consigna = 0
 
         self.msg_mando = Joy()
         self.msg_arduino = Joy()
 
         self.recording = False
 
-        self.msg_mando.axes = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        self.msg_mando.axes = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         self.msg_mando.buttons = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
         self.pressed = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -37,6 +40,14 @@ class CurritoController():
         self.cresta_consigna = (self.msg_mando.axes[2] + 1)/2 *180
         self.cuello_consigna = (self.msg_mando.axes[3] + 1)/2 *180
         self.cuerpo_consigna = (self.msg_mando.axes[4] + 1)/2 *180
+        self.boca_consigna = (self.msg_mando.axes[5] + 1)/2 *180
+        
+        self.rueda_izq_consigna = self.msg_mando.axes[6]*0                      # Por definir
+        self.rueda_der_consigna = self.msg_mando.axes[7]*0                      # Por definir
+        # Posible calculo:
+        #   self.error_izq = self.msg_mando.axes[6]
+        #   self.control_ruedas()   # Controlador proporcional que calcula el valor de self.rueda_izq_consigna a partir de self.error_izq
+
 
 
     def control_automatico(self):
@@ -46,6 +57,13 @@ class CurritoController():
         # self.cresta_consigna = 0
         # self.cuello_consigna = 0
         # self.cuerpo_consigna = 0
+        # self.boca_consigna = 0
+
+        # self.error_izq = 0
+        # self.error_der = 0
+        # self.control_ruedas()
+        # self.rueda_izq_consigna = 0
+        # self.rueda_der_consigna = 0
         pass
 
     def start_record(self):
@@ -87,7 +105,7 @@ class CurritoController():
 
 
         # self.msg_arduino.buttons = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        self.msg_arduino.axes = [self.ceja_izq_consigna, self.ceja_der_consigna, self.cresta_consigna, self.cuello_consigna, self.cuerpo_consigna, 0]
+        self.msg_arduino.axes = [self.ceja_izq_consigna, self.ceja_der_consigna, self.cresta_consigna, self.cuello_consigna, self.cuerpo_consigna, self.boca_consigna, self.rueda_izq_consigna, self.rueda_der_consigna]
 
         self.pub.publish(self.msg_arduino)
 
@@ -100,7 +118,7 @@ class CurritoController():
 
             elif(msg.buttons[i] == 1 and self.pressed[i] == 0):
                 self.pressed[i] = 1
-                
+
                 if self.mode[i] == 1:
                     self.mode[i] = 0
                 else:
@@ -126,4 +144,3 @@ if __name__ == "__main__":
     rate = rospy.Rate(1)
     while not rospy.is_shutdown():
         rate.sleep()
-    
