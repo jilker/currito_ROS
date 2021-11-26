@@ -16,9 +16,9 @@
 
 // Orden de asignación de las consignas con los motores en ROS:   ceja_izq, ceja_der, cresta, cuello, cuerpo, boca
 
-#define PIN_CEJA_IZQ  12  // Sin PWM
-#define PIN_CEJA_DER  11
-#define PIN_CRESTA    10
+#define PIN_CEJA_IZQ  2  // Sin PWM
+#define PIN_CEJA_DER  5
+#define PIN_CRESTA    3
 #define PIN_CUELLO    9
 #define PIN_CUERPO    6
 #define PIN_BOCA      8      // Pin sin PWM. La boca no se controla aun desde python
@@ -39,10 +39,10 @@
 
 
 // Ruedas
-#define PIN_RUEDA_IZQ 4
-#define PIN_RUEDA_DER 7
-#define DIR_RUEDA_IZQ 3 // Con PWM
-#define DIR_RUEDA_DER 5 // Con PWM
+#define PIN_RUEDA_IZQ 10 // Con PWM
+#define PIN_RUEDA_DER 11 // Con PWM
+#define DIR_RUEDA_IZQ 12 // NO SE PUEDE USAR EL 4, es el ZUMBADOR
+#define DIR_RUEDA_DER 13
 
 ros::NodeHandle nh;
 
@@ -159,8 +159,8 @@ private:
   uint16_t cuerpo_consigna_;
   uint16_t boca_consigna_;
   
-  uint16_t rueda_izq_consigna_;
-  uint16_t rueda_der_consigna_;
+  int16_t rueda_izq_consigna_;
+  int16_t rueda_der_consigna_;
 
   ros::Subscriber<sensor_msgs::Joy, Body> subscriber_;
 };
