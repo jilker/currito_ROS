@@ -65,12 +65,12 @@ public:
     cuello_.attach(   PIN_CUELLO,     MIN_CUELLO,     MAX_CUELLO);
     cuerpo_.attach(   PIN_CUERPO,     MIN_CUERPO,     MAX_CUERPO);
     boca_.attach(     PIN_BOCA,       MIN_BOCA,       MAX_BOCA);
-    ceja_izq_consigna_ = 0;
-    ceja_der_consigna_ = 0;
-    cresta_consigna_ = 0;
-    cuello_consigna_ = 0;
-    cuerpo_consigna_ = 0;
-    boca_consigna_ = 0;
+    ceja_izq_consigna_ = 90;
+    ceja_der_consigna_ = 90;
+    cresta_consigna_ = 90;
+    cuello_consigna_ = 90;
+    cuerpo_consigna_ = 90;
+    boca_consigna_ = 90;
 
     /* Ruedas */
     rueda_izq_consigna_ = 0;
@@ -105,11 +105,10 @@ public:
 
     /* Aplicación de las consignas de las ruedas*/
     /* Rueda izquierda*/
-    if(rueda_izq_consigna_ => 0)
+    if(rueda_izq_consigna_ >= 0)
     {
       digitalWrite(DIR_RUEDA_IZQ, HIGH);
       analogWrite(PIN_RUEDA_IZQ, rueda_izq_consigna_);
-      
     }
     else
     {
@@ -118,7 +117,7 @@ public:
     }
     
     /* Rueda derecha*/
-    if(rueda_der_consigna_ => 0)
+    if(rueda_der_consigna_ >= 0)
     {
       digitalWrite(DIR_RUEDA_DER, HIGH);
       analogWrite(PIN_RUEDA_DER, rueda_der_consigna_);
@@ -153,7 +152,7 @@ private:
   Servo cuerpo_;
   Servo boca_;
 
-  uint16_t // Con PWM;
+  uint16_t ceja_izq_consigna_;
   uint16_t ceja_der_consigna_;
   uint16_t cresta_consigna_;
   uint16_t cuello_consigna_;
