@@ -9,7 +9,7 @@
 #include <sensor_msgs/Joy.h>
 #include <std_srvs/SetBool.h>
 #include <std_msgs/UInt16.h>
-
+#include <std_msgs/Bool.h>
 // Pines del Arduino UNO con PWM: 11, 10, 9, 6, 5, 3
 // Hay suficientes para: las dos ruedas, y 4 partes del cuerpo
 // Por lo que hay que dejar sin pin PWM a 2 partes del cuerpo (Boca y otra)
@@ -51,7 +51,8 @@ class Body
 public:
   /*Funciones*/
   Body()
-      : subscriber_("/joy2", &Body::set_period_callback, this)
+      : motion_sub_("/joy2", &Body::set_period_callback, this),
+        status_sub_("/power",&Body::set_status,this)
   {
   }
 
@@ -75,8 +76,10 @@ public:
     /* Ruedas */
     rueda_izq_consigna_ = 0;
     rueda_der_consigna_ = 0;
-
-    nh.subscribe(subscriber_);
+    /* Status values */
+    status = true;
+    nh.subscribe(motion_sub_);
+    nh.subscribe(status_sub_)
   }
 
   
@@ -143,7 +146,10 @@ public:
     rueda_izq_consigna_ = msg.axes[6];
     rueda_der_consigna_ = msg.axes[7];
   }
-
+  void set_status (const std_msgs::Bool &msg)
+  {
+    status=msg.data;
+  }
 private:
   Servo ceja_izq_;
   Servo ceja_der_;
@@ -162,7 +168,9 @@ private:
   int16_t rueda_izq_consigna_;
   int16_t rueda_der_consigna_;
 
-  ros::Subscriber<sensor_msgs::Joy, Body> subscriber_;
+  bool status;
+  ros::Subscriber<sensor_msgs::Joy, Body> motion_sub_;
+  ros::Subscriber<std_msgs::Bool, Body> status_sub_;
 };
 
 
@@ -183,7 +191,10 @@ void setup()
 
 void loop()
 {
-  body.syncro();
+  if (status == true)
+  {
+    body.syncro();
+  }
   nh.spinOnce();
   delay(1);
 }
