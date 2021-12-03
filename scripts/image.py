@@ -25,19 +25,20 @@ class CameraCurrito():
             tmp,img = self.get_image()
             self.height,self.width = img.shape[0:2]
             mask = self.get_mask(img)
-            res = cv2.bitwise_and(img,img,mask=mask)
+            # res = cv2.bitwise_and(img,img,mask=mask)
+            ret,res = cv2.threshold(img[:,:,1],100,255,cv2.THRESH_BINARY)
             contours  = cv2.findContours(mask, cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
             if contours[1].__len__() >0:
                 for it in contours[1]:
                     cv2.drawContours(img, it, -1, (0,255,0), 3)
                 c = max(contours[1], key=cv2.contourArea)
-                ((x, y), radius) = cv2.minEnclosingCircle(c)
+                # ((x, y), radius) = cv2.minEnclosingCircle(c)
                 M = cv2.moments(c)
                 center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
                 cv2.circle(img, center, 5, (0, 0, 255), -1)
             cv2.imshow('mask',mask)
             cv2.imshow('res',res)
-            cv2.imshow("frame",)
+            cv2.imshow("frame",img)
             # cv2.imshow("cnts", cnts)
             cv2.waitKey(1)
     def get_mask(self,img):
