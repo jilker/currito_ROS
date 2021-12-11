@@ -13,3 +13,12 @@ Para lanzar rosserial:
 ```
 rosrun rosserial_python serial_node.py /dev/ttyACM0 _baud:=115200
 ```
+## PINES
+```bash
+PIN_CEJA_IZQ  12
+PIN_CEJA_DER  11
+PIN_CRESTA    10
+PIN_CUELLO    9
+PIN_CUERPO    6
+PIN_BOCA      8
+```
