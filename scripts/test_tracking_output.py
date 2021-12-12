@@ -12,15 +12,19 @@ class TLeds():
         self.msg.a = 0
     def pub(self,event=None):
         self.publish.publish(self.msg)
+        if leds.msg.a > 22:
+            leds.msg.a = 0
+        else:
+            leds.msg.a+=1
 
 if __name__ == "__main__":
     nh = rospy.init_node('Test_leds')
     leds = TLeds()
-    rate = rospy.Rate(5)
-    rospy.Timer(rospy.Duration(0.5), leds.pub)
+    rate = rospy.Rate(2)
+    rospy.Timer(rospy.Duration(0.1), leds.pub)
     while not rospy.is_shutdown():
-        if leds.msg.a > 360:
-            leds.msg.a = 0
-        else:
-            leds.msg.a+=1
         rate.sleep()
+    # while not rospy.is_shutdown():
+    #     value = int(input("value: "))
+    #     leds.msg.a = value
+    #     rate.sleep()
