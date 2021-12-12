@@ -31,9 +31,15 @@ class CurritoController():
         self.pressed = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         self.mode = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
+        # Conteo de los Rosbags existentes
         self.bag_dir = "rosbags/"
         self.bag_cont = len(os.listdir(self.bag_dir))
-        print(str(self.bag_cont))
+        print("Número de rosbags existentes: " + str(self.bag_cont))
+
+        # Control automatico de las ruedas:
+        self.error_horizontal = 0
+        self.error_vertical = 0
+        self.area_pelota = 0
 
         rospy.init_node('procesa_mando')
         self.pub = rospy.Publisher("/joy2", Joy, queue_size=10)
@@ -41,39 +47,88 @@ class CurritoController():
 
         rospy.Subscriber("/joy", Joy, self.callback)
 
-    def control_mando(self):
+        rospy.Subscriber("/datos_pelota", Joy, self.callback_pelota)
 
-        self.ceja_izq_consigna = (self.msg_mando.axes[0] + 1)/2 *180
-        self.ceja_der_consigna = (self.msg_mando.axes[1] + 1)/2 *180
+
+
+
+    def control_mando(self):
+        # Reasignados los ejes que se atribuyen a cada motor para que el control sea intuitivo
+        # Es mejor hacer la reasignación siempre desde aqui para no torcar más lo de arduino
+        # Los ejes empiezan en el 0
+
+        # Cejas: mismo eje: el 5 (R2)
+        self.ceja_izq_consigna = (self.msg_mando.axes[5] + 1)/2 *180
+        self.ceja_der_consigna = (self.msg_mando.axes[5] + 1)/2 *180
+
+        # Cresta: eje 2 (L2)
         self.cresta_consigna = (self.msg_mando.axes[2] + 1)/2 *180
-        self.cuello_consigna = (self.msg_mando.axes[3] + 1)/2 *180
+
+        # Cuello: eje 4 (R arriba abajo)
+        self.cuello_consigna = (self.msg_mando.axes[4] + 1)/2 *180
+        # Rotacion cuerpo: eje 3 (R derecha izqueirda)
         self.cuerpo_consigna = (self.msg_mando.axes[4] + 1)/2 *180
+
+        # Boca: mismo eje que las cejas, por ponerle alguno
         self.boca_consigna = (self.msg_mando.axes[5] + 1)/2 *180
 
-        # self.rueda_izq_consigna = self.msg_mando.axes[6]*0                      # Por definir
-        # self.rueda_der_consigna = self.msg_mando.axes[7]*0                      # Por definir
 
-        # Posible calculo:
-        #   self.error_izq = self.msg_mando.axes[6]
-        #   self.control_ruedas()   # Controlador proporcional que calcula el valor de self.rueda_izq_consigna a partir de self.error_izq
+        # Ruedas: en el modo manual responden de forma proporcional a la puslación de los joysticks:
+        # El error puede ir entre [-1, 1], y las ruedas pueden girar a velocidad [-255, 255]
+        # De los 255 valores, se reparten 128 para Avance y 127 para rotación
+        # NOTA: hay que pensar algo para el umbral inferior: las ruedas no se mueven para actuaciones menores a 60
+
+        # Avance: eje 1 (L arruva abajo)
+        avance = round(128 * self.msg_mando.axes[1])
+
+        # Rotacion: eje 0 (L derecha izquierda)
+        rotacion = round(127 * self.msg_mando.axes[0])
+
+        # Las ruedas tienen mismo Avance, opuesta Rotación. Y además sus motores están puestos cada uno en un sentido
+        self.rueda_izq_consigna =   avance + rotacion
+        self.rueda_der_consigna = -(avance - rotacion)
 
 
 
     def control_automatico(self):
-        # TODO: Movimiento automatico
-        # self.ceja_izq_consigna = 0
-        # self.ceja_der_consigna = 0
-        # self.cresta_consigna = 0
-        # self.cuello_consigna = 0
-        # self.cuerpo_consigna = 0
-        # self.boca_consigna = 0
+        # En el control automático de seguimiento de la pelota, se controlan Cuello, Cuerpo y Ruedas
+        self.ceja_izq_consigna = 90
+        self.ceja_der_consigna = 90
+        self.cresta_consigna = 90
+        self.boca_consigna = 90
 
-        # self.error_izq = 0
-        # self.error_der = 0
-        # self.control_ruedas()
-        # self.rueda_izq_consigna = 0
-        # self.rueda_der_consigna = 0
-        pass
+        # Cuello y cuerpo: seguimiento pelota: movimiento a velocidad constante controlada hasta quedar mirándola
+        if(self.error_vertical>0 and self.cuello_consigna<180):
+            self.cuello_consigna = self.cuello_consigna + 1
+        elif (self.error_vertical<0 and self.cuello_consigna>0):
+            self.cuello_consigna = self.cuello_consigna - 1
+
+
+        if(self.error_horizontal>0 and self.cuerpo_consigna<180):
+            self.cuerpo_consigna = self.cuerpo_consigna + 1
+        elif (self.error_horizontal<0 and self.cuerpo_consigna>0):
+            self.cuerpo_consigna = self.cuerpo_consigna - 1
+
+        # Ruedas: hasta que veamos como se comporta el currito, esta puesto para que los movimientos sean a velocidad constante y baja
+        # Rotación: usando la posición del cuello: si las ruedas intentan girar hasta que el cuello esté recto, se logra el seguimiento de la pelota
+        rotacion =  self.cuerpo_consigna/180*2 - 1  # conversión de [0, 180] a [-1,1]
+        rotacion = round(127 * rotacion)    # conversión de [-1,1] a [-127, 127]
+
+        # Avance: si la pelota está lejos, el currito avanza a velocidad constante pero baja
+        avance = 0
+        area_deseada = 50   # El area suele variar entre 10 y 100 (con pantalla de 720 de alto)
+        if(self.area_pelota<area_deseada):
+            avance = 80 # el umbral inferior es 60
+        elif(self.area_pelota>area_deseada):
+            avance = -80
+
+        # Las ruedas tienen mismo Avance, opuesta Rotación. Y además sus motores están puestos cada uno en un sentido
+        self.rueda_izq_consigna =   avance + rotacion
+        self.rueda_der_consigna = -(avance - rotacion)
+
+
+
+
 
     def start_record(self):
 
@@ -128,8 +183,6 @@ class CurritoController():
 
 
     def callback(self, msg):
-
-
         for i in range(len(msg.buttons)):
             if(msg.buttons[i] == 0):
                 self.pressed[i] = 0
@@ -155,6 +208,16 @@ class CurritoController():
         self.msg_mando = msg
 
         self.publica()
+
+
+
+    def callback_pelota(self, msg):
+        self.error_horizontal = msg.axes[0]
+        self.error_vertical = msg.axes[1]
+        self.area_pelota = msg.axes[2]
+
+
+
 
 
 
