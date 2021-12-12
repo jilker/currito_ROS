@@ -4,6 +4,10 @@ from sensor_msgs.msg import Joy
 import subprocess, shlex, psutil
 import rosbag
 
+import time
+
+import os   # para contar el numero de archivos en ./rosbags
+
 
 class CurritoController():
     def __init__(self):
@@ -27,6 +31,10 @@ class CurritoController():
         self.pressed = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         self.mode = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
+        self.bag_dir = "rosbags/"
+        self.bag_cont = len(os.listdir(self.bag_dir))
+        print(str(self.bag_cont))
+
         rospy.init_node('procesa_mando')
         self.pub = rospy.Publisher("/joy2", Joy, queue_size=10)
         # rospy.Timer(rospy.Duration(Ts), publica)
@@ -41,9 +49,10 @@ class CurritoController():
         self.cuello_consigna = (self.msg_mando.axes[3] + 1)/2 *180
         self.cuerpo_consigna = (self.msg_mando.axes[4] + 1)/2 *180
         self.boca_consigna = (self.msg_mando.axes[5] + 1)/2 *180
-        
-        self.rueda_izq_consigna = self.msg_mando.axes[6]*0                      # Por definir
-        self.rueda_der_consigna = self.msg_mando.axes[7]*0                      # Por definir
+
+        # self.rueda_izq_consigna = self.msg_mando.axes[6]*0                      # Por definir
+        # self.rueda_der_consigna = self.msg_mando.axes[7]*0                      # Por definir
+
         # Posible calculo:
         #   self.error_izq = self.msg_mando.axes[6]
         #   self.control_ruedas()   # Controlador proporcional que calcula el valor de self.rueda_izq_consigna a partir de self.error_izq
@@ -70,17 +79,11 @@ class CurritoController():
 
         self.recording = True
         print("Trying to start record")
-        self.command = "rosbag record -O subset /joy2"
+        self.bag_cont = self.bag_cont + 1
+        self.command = "rosbag record -O " + self.bag_dir + "subset" + str(self.bag_cont) + " /joy2"
         self.command = shlex.split(self.command)
         self.rosbag_proc = subprocess.Popen(self.command)
         print("RECORD RUNNING")
-
-    def play_bag(self):
-
-        self.bag = rosbag.Bag('subset.bag')
-        for topic, msg, t in self.bag.read_messages(topics=['/joy2']):
-            self.pub.publish(msg)
-        self.bag.close()
 
     def end_record(self):
         print("Trying to close the record")
@@ -90,24 +93,39 @@ class CurritoController():
                 proc.send_signal(subprocess.signal.SIGINT)
 
         self.rosbag_proc.send_signal(subprocess.signal.SIGINT)
+        print("RECORD CLOSED")
+
+
+# Marcelo: Esta funcion hay que revisarla. No estoy seguro de si entendí bien como funcionaba, pero en caso de que si, parece que escribia todos los mensajes
+# de golpe sin dejar pausa entre ellos
+    def play_bag(self):
+        print("PLAYING BAG")
+        self.bag = rosbag.Bag(self.bag_dir + "subset" + str(self.bag_cont) + ".bag")
+        for topic, msg, t in self.bag.read_messages(topics=['/joy2']):
+            self.pub.publish(msg)
+            time.sleep(1/10) # pusa para que los mensajes se envien a 10 Hz
+        self.bag.close()
+        # Desactivamos mode[2] para no reproducir la bag en bucle
+        self.mode[2] = 0
+        print("FIN PLAYING BAG")
 
 
     def publica(self):
 
+        # En cualquiera de los modos, el boton 2 permite reproducir la grabacion
+        if self.mode[2] == 1:
+            self.play_bag()
         # Mientras se controla con el mando:
-        if self.mode[0] == 0:
+        elif self.mode[0] == 0:   # El boton 0 es el que decide el cambio entre modo Manodo y Automático
             self.control_mando()
+
         elif self.mode[0] == 1:
             self.control_automatico()
-        elif self.mode[2] == 1:
-            self.play_bag()
-
-
 
         # self.msg_arduino.buttons = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         self.msg_arduino.axes = [self.ceja_izq_consigna, self.ceja_der_consigna, self.cresta_consigna, self.cuello_consigna, self.cuerpo_consigna, self.boca_consigna, self.rueda_izq_consigna, self.rueda_der_consigna]
-
         self.pub.publish(self.msg_arduino)
+
 
     def callback(self, msg):
 
@@ -121,8 +139,12 @@ class CurritoController():
 
                 if self.mode[i] == 1:
                     self.mode[i] = 0
+                    if i == 0:
+                        print("Modo MANDO")
                 else:
                     self.mode[i] = 1
+                    if i == 0:
+                        print("Modo AUTOMATICO")
 
         if self.mode[1] == 1 and self.recording == False:
             self.start_record()
@@ -140,6 +162,8 @@ if __name__ == "__main__":
 
 
     currito = CurritoController()
+
+    print("Modo MANDO (modo de inicio del sistema)")
 
     rate = rospy.Rate(1)
     while not rospy.is_shutdown():
