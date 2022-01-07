@@ -54,12 +54,17 @@ class CurritoController():
 
     def control_mando(self):
         # Reasignados los ejes que se atribuyen a cada motor para que el control sea intuitivo
-        # Es mejor hacer la reasignación siempre desde aqui para no torcar más lo de arduino
+        # Es mejor hacer la reasignación siempre desde aqui para no tocar más lo de arduino
         # Los ejes empiezan en el 0
 
-        # Cejas: mismo eje: el 5 (R2)
+        # Cejas: mismo eje: eje 5 (R2)
         self.ceja_izq_consigna = (self.msg_mando.axes[5] + 1)/2 *180
         self.ceja_der_consigna = (self.msg_mando.axes[5] + 1)/2 *180
+        # Saturación de la consigna de la ceja izquierda
+        if(self.ceja_izq_consigna<30):
+            self.ceja_izq_consigna = 30
+        elif(self.ceja_izq_consigna>(180-45)):
+            self.ceja_izq_consigna = 180-45
 
         # Cresta: eje 2 (L2)
         self.cresta_consigna = (self.msg_mando.axes[2] + 1)/2 *180
@@ -67,18 +72,18 @@ class CurritoController():
         # Cuello: eje 4 (R arriba abajo)
         self.cuello_consigna = (self.msg_mando.axes[4] + 1)/2 *180
         # Rotacion cuerpo: eje 3 (R derecha izqueirda)
-        self.cuerpo_consigna = (self.msg_mando.axes[4] + 1)/2 *180
+        self.cuerpo_consigna = (self.msg_mando.axes[3] + 1)/2 *180
 
         # Boca: mismo eje que las cejas, por ponerle alguno
         self.boca_consigna = (self.msg_mando.axes[5] + 1)/2 *180
 
 
-        # Ruedas: en el modo manual responden de forma proporcional a la puslación de los joysticks:
-        # El error puede ir entre [-1, 1], y las ruedas pueden girar a velocidad [-255, 255]
+        # Ruedas: en el Modo Manual responden de forma proporcional a la puslación de los joysticks:
+        # el "error" (la señal de los joysticks) puede ir entre [-1, 1], y las ruedas pueden girar a velocidad [-255, 255]
         # De los 255 valores, se reparten 128 para Avance y 127 para rotación
         # NOTA: hay que pensar algo para el umbral inferior: las ruedas no se mueven para actuaciones menores a 60
 
-        # Avance: eje 1 (L arruva abajo)
+        # Avance: eje 1 (L arriba abajo)
         avance = round(128 * self.msg_mando.axes[1])
 
         # Rotacion: eje 0 (L derecha izquierda)
@@ -98,18 +103,20 @@ class CurritoController():
         self.boca_consigna = 90
 
         # Cuello y cuerpo: seguimiento pelota: movimiento a velocidad constante controlada hasta quedar mirándola
+        # Si la rate de publicación es de 10Hz, y esto incrementa en 1, en principio es una velocidad de hasta 10º/s
+        # Error Vertical -> movimiento Cuello
         if(self.error_vertical>0 and self.cuello_consigna<180):
             self.cuello_consigna = self.cuello_consigna + 1
         elif (self.error_vertical<0 and self.cuello_consigna>0):
             self.cuello_consigna = self.cuello_consigna - 1
 
-
+        # Error Horizontal -> movimiento Cuerpo
         if(self.error_horizontal>0 and self.cuerpo_consigna<180):
             self.cuerpo_consigna = self.cuerpo_consigna + 1
         elif (self.error_horizontal<0 and self.cuerpo_consigna>0):
             self.cuerpo_consigna = self.cuerpo_consigna - 1
 
-        # Ruedas: hasta que veamos como se comporta el currito, esta puesto para que los movimientos sean a velocidad constante y baja
+        # Ruedas: hasta que veamos cómo se comporta el currito, está puesto para que los movimientos sean a velocidad constante y baja
         # Rotación: usando la posición del cuello: si las ruedas intentan girar hasta que el cuello esté recto, se logra el seguimiento de la pelota
         rotacion =  self.cuerpo_consigna/180*2 - 1  # conversión de [0, 180] a [-1,1]
         rotacion = round(127 * rotacion)    # conversión de [-1,1] a [-127, 127]
@@ -117,9 +124,10 @@ class CurritoController():
         # Avance: si la pelota está lejos, el currito avanza a velocidad constante pero baja
         avance = 0
         area_deseada = 50   # El area suele variar entre 10 y 100 (con pantalla de 720 de alto)
-        if(self.area_pelota<area_deseada):
+        umbral_area = 10    # Umbral en la detección del área deseada para evitar que se mueva alante y atrás cuando está en torno a la referencia
+        if(self.area_pelota<(area_deseada-umbral_area)):
             avance = 80 # el umbral inferior es 60
-        elif(self.area_pelota>area_deseada):
+        elif(self.area_pelota>(area_deseada+umbral_area)):
             avance = -80
 
         # Las ruedas tienen mismo Avance, opuesta Rotación. Y además sus motores están puestos cada uno en un sentido
@@ -153,6 +161,9 @@ class CurritoController():
 
 # Marcelo: Esta funcion hay que revisarla. No estoy seguro de si entendí bien como funcionaba, pero en caso de que si, parece que escribia todos los mensajes
 # de golpe sin dejar pausa entre ellos
+# Ahora los escribe a la misma velocidad a la que fueron grabados, y parece que funciona
+
+    # Función que reproduce el contenido del último rosbag a la velocidad a la que fue grabado, y no se abandona hasta que se completa
     def play_bag(self):
         print("PLAYING BAG")
         self.bag = rosbag.Bag(self.bag_dir + "subset" + str(self.bag_cont) + ".bag")
@@ -169,19 +180,20 @@ class CurritoController():
 
         # En cualquiera de los modos, el boton 2 permite reproducir la grabacion
         if self.mode[2] == 1:
-            self.play_bag()
+            self.play_bag() # De esta función no se sale hasta que se completa la reproducción del bag
         # Mientras se controla con el mando:
         elif self.mode[0] == 0:   # El boton 0 es el que decide el cambio entre modo Manodo y Automático
             self.control_mando()
-
         elif self.mode[0] == 1:
             self.control_automatico()
+
 
         # self.msg_arduino.buttons = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         self.msg_arduino.axes = [self.ceja_izq_consigna, self.ceja_der_consigna, self.cresta_consigna, self.cuello_consigna, self.cuerpo_consigna, self.boca_consigna, self.rueda_izq_consigna, self.rueda_der_consigna]
         self.pub.publish(self.msg_arduino)
 
 
+    # Callback cada vez que se publica algo desde el mando
     def callback(self, msg):
         for i in range(len(msg.buttons)):
             if(msg.buttons[i] == 0):
@@ -211,6 +223,7 @@ class CurritoController():
 
 
 
+    # Callback cada vez que la cámara actualiza la posición de la pelota
     def callback_pelota(self, msg):
         self.error_horizontal = msg.axes[0]
         self.error_vertical = msg.axes[1]
