@@ -12,12 +12,12 @@ import os   # para contar el numero de archivos en ./rosbags
 
 class CurritoController():
     def __init__(self):
-        self.ceja_izq_consigna = 0
-        self.ceja_der_consigna = 0
-        self.cresta_consigna = 0
-        self.cuello_consigna = 0
-        self.cuerpo_consigna = 0
-        self.boca_consigna = 0
+        self.ceja_izq_consigna = 90
+        self.ceja_der_consigna = 90
+        self.cresta_consigna = 90
+        self.cuello_consigna = 90
+        self.cuerpo_consigna = 90
+        self.boca_consigna = 90
         self.rueda_izq_consigna = 0
         self.rueda_der_consigna = 0
 
@@ -30,7 +30,7 @@ class CurritoController():
         self.msg_mando.buttons = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
         self.pressed = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        self.mode = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.mode = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
         # Conteo de los Rosbags existentes
         self.bag_dir = "rosbags/"
@@ -43,10 +43,11 @@ class CurritoController():
         self.area_pelota = 0
 
         rospy.init_node('procesa_mando')
-        self.pub = rospy.Publisher("/joy2", Joy, queue_size=10)
+        self.pub = rospy.Publisher("/joy2", Joy, queue_size=1)
         # rospy.Timer(rospy.Duration(Ts), publica)
 
-        rospy.Subscriber("/joy", Joy, self.callback)
+        self.timer = rospy.Timer(rospy.Duration(0.2), self.publica)
+        rospy.Subscriber("/joy", Joy, self.callbackMando)
 
         rospy.Subscriber("/datos_pelota", Joy, self.callback_pelota)
 
@@ -107,9 +108,9 @@ class CurritoController():
         # Si la rate de publicación es de 10Hz, y esto incrementa en 1, en principio es una velocidad de hasta 10º/s
         # Error Vertical -> movimiento Cuello
         if(self.error_vertical<0 and self.cuello_consigna<180):
-            self.cuello_consigna = self.cuello_consigna + 10
+            self.cuello_consigna = self.cuello_consigna + 5
         elif (self.error_vertical>0 and self.cuello_consigna>0):
-            self.cuello_consigna = self.cuello_consigna - 10
+            self.cuello_consigna = self.cuello_consigna - 5
 
         # Error Horizontal -> movimiento Cuerpo
         if(self.error_horizontal>0 and self.cuerpo_consigna<180):
@@ -134,8 +135,15 @@ class CurritoController():
         # Las ruedas tienen mismo Avance, opuesta Rotación. Y además sus motores están puestos cada uno en un sentido
         self.rueda_izq_consigna =   avance + rotacion
         self.rueda_der_consigna = -(avance - rotacion)
-        
-        print(self.cuello_consigna)
+
+        # Saturacion de variables
+        if self.cuerpo_consigna < 30:
+            self.cuerpo_consigna = 30
+        elif self.cuerpo_consigna > 150:
+            self.cuerpo_consigna = 150
+
+        print("Consigna para el cuello: ",self.cuello_consigna)
+        print("Consigna para el cuerpo: ",self.cuerpo_consigna)
 
 
 
@@ -180,7 +188,7 @@ class CurritoController():
         print("FIN PLAYING BAG")
 
 
-    def publica(self):
+    def publica(self,timer):
 
         # En cualquiera de los modos, el boton 2 permite reproducir la grabacion
         if self.mode[2] == 1:
@@ -198,7 +206,7 @@ class CurritoController():
 
 
     # Callback cada vez que se publica algo desde el mando
-    def callback(self, msg):
+    def callbackMando(self, msg):
         for i in range(len(msg.buttons)):
             if(msg.buttons[i] == 0):
                 self.pressed[i] = 0
@@ -223,7 +231,7 @@ class CurritoController():
 
         self.msg_mando = msg
 
-        self.publica()
+        # self.publica()
 
 
 
@@ -233,18 +241,11 @@ class CurritoController():
         self.error_vertical = msg.axes[1]
         self.area_pelota = msg.axes[2]
 
-
-
-
-
-
 if __name__ == "__main__":
-
-
     currito = CurritoController()
-
     print("Modo MANDO (modo de inicio del sistema)")
+    rospy.spin()
+    # rate = rospy.Rate(1)
 
-    rate = rospy.Rate(1)
-    while not rospy.is_shutdown():
-        rate.sleep()
+    # while not rospy.is_shutdown():
+    #     rate.sleep()

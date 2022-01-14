@@ -25,15 +25,16 @@ class CameraCurrito():
         self.img_pub = rospy.Publisher("/camera/image_raw", Image,queue_size=10)
         print("Initializing Camera")
         self.video = cv2.VideoCapture("/dev/video0",cv2.CAP_V4L)
+        self.video.set(cv2.CAP_PROP_POS_FRAMES, -1)
         print("Camera initialized")
         self.bridge = CvBridge()
 
         # self.height = 0
         # self.width = 0
 
-        self.pub = rospy.Publisher("/datos_pelota", Joy, queue_size=10)
+        self.pub = rospy.Publisher("/datos_pelota", Joy, queue_size=1)
         self.msg_pelota = Joy()
-        self.FPS_target = 3
+        self.FPS_target = 20
 
 
     def loop(self):
@@ -68,15 +69,15 @@ class CameraCurrito():
             except:
                 pass
             
-            try:
-                img_msg = self.bridge.cv2_to_imgmsg(img, encoding="bgr8")
-                # img_msg = bridge.cv2_to_imgmsg(img_out, "rgba8")
-                # img_msg.header.stamp = rospy.Time.now()
-                # img_msg.header.frame_id = 1
-                self.img_pub.publish(img_msg)
+            # try:
+            #     # img_msg = self.bridge.cv2_to_imgmsg(img, encoding="bgr8")
+            #     # # img_msg = bridge.cv2_to_imgmsg(img_out, "rgba8")
+            #     # # img_msg.header.stamp = rospy.Time.now()
+            #     # # img_msg.header.frame_id = 1
+            #     # self.img_pub.publish(img_msg)
 
-            except CvBridgeError as err:
-                print(err)
+            # except CvBridgeError as err:
+            #     print(err)
 
             if 1/(time.time()-start) > self.FPS_target:
                 time_to_wait = 1/self.FPS_target - (time.time()-start)
@@ -102,8 +103,10 @@ class CameraCurrito():
             mask_B = cv2.dilate(mask_B, None, iterations=2)
             return mask_A+mask_B
         else:
-            lower_red_1 = np.array([150,43,183])
-            upper_red_1 = np.array([179,229,255])
+            # lower_red_1 = np.array([150,43,183])
+            # upper_red_1 = np.array([179,229,255])
+            lower_red_1 = np.array([95,66,44])
+            upper_red_1 = np.array([179,211,183])
             mask_A = cv2.inRange(hsv,lower_red_1,upper_red_1)
             mask_A = cv2.erode(mask_A, None, iterations=2)
             mask_A = cv2.dilate(mask_A, None, iterations=2)
