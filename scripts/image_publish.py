@@ -19,6 +19,8 @@ from sensor_msgs.msg import CameraInfo
 
 
 from cv_bridge import CvBridge, CvBridgeError
+import time
+
 
 bridge = CvBridge()
 
@@ -33,12 +35,15 @@ def main():
     rospy.init_node("video_publisher", anonymous=True)
     img_pub = rospy.Publisher("/camera/image_raw", Image,
                               queue_size=10)
-
     # Open video.
-    video = cv2.VideoCapture(0)
+    # open camera
+    video = cv2.VideoCapture("/dev/video0")
 
     # Loop through video frames.
-    while not rospy.is_shutdown() and video.grab():
+    i = 0
+    while not rospy.is_shutdown():
+        i += 1
+        # print("YES?")
         tmp, img = video.read()
         # cv2.imshow("test", img)
         if not tmp:
@@ -56,10 +61,10 @@ def main():
             # img_msg.header.frame_id = 1
             img_pub.publish(img_msg)
 
-
         except CvBridgeError as err:
             print(err)
 
+        cv2.imshow("TEST", img)
         if cv2.waitKey(1) == 27: 
             break  # esc to quit
     return
