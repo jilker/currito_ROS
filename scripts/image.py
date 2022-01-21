@@ -23,11 +23,15 @@ class CameraCurrito():
     def __init__(self):
         self.node = rospy.init_node("image_currito", anonymous=True)
         self.img_pub = rospy.Publisher("/camera/image_raw", Image,queue_size=10)
+<<<<<<< HEAD
         print("Initializing Camera")
         self.video = cv2.VideoCapture("/dev/video0",cv2.CAP_V4L)
         print("Camera initialized")
         self.bridge = CvBridge()
 
+=======
+        self.video = cv2.VideoCapture("/dev/video0")
+>>>>>>> dev
         # self.height = 0
         # self.width = 0
 
@@ -37,9 +41,14 @@ class CameraCurrito():
 
 
     def loop(self):
+<<<<<<< HEAD
         print("Running main loop")
         while not rospy.is_shutdown():
             start = time.time()
+=======
+        while not rospy.is_shutdown():
+            
+>>>>>>> dev
             img = self.get_image()
             img = cv2.resize(img, (250, 250))
 
@@ -67,6 +76,7 @@ class CameraCurrito():
                 self.pub.publish(self.msg_pelota)
             except:
                 pass
+<<<<<<< HEAD
             
             try:
                 img_msg = self.bridge.cv2_to_imgmsg(img, encoding="bgr8")
@@ -84,6 +94,10 @@ class CameraCurrito():
             # cv2.imshow('detected circles',img)
             print("FPS = ", 1/(time.time()-start))
             cv2.waitKey(1)
+=======
+            cv2.imshow('detected circles',img)
+            cv2.waitKey(50)
+>>>>>>> dev
 
     def get_mask(self,img):
         img = cv2.GaussianBlur(img, (11, 11), 0)
