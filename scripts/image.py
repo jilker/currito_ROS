@@ -13,15 +13,24 @@ from sensor_msgs.msg import Image
 # from sensor_msgs.msg import CameraInfo
 import numpy as np
 
+from sensor_msgs.msg import Joy
+
+
 class CameraCurrito():
     def __init__(self):
         self.node = rospy.init_node("image_currito", anonymous=True)
         self.img_pub = rospy.Publisher("/camera/image_raw", Image,queue_size=10)
-        self.video = cv2.VideoCapture(0)
+        self.video = cv2.VideoCapture("/dev/video0")
         # self.height = 0
         # self.width = 0
+
+        self.pub = rospy.Publisher("/datos_pelota", Joy, queue_size=10)
+        self.msg_pelota = Joy()
+
+
     def loop(self):
-        while not rospy.is_shutdown() and self.video.grab():
+        while not rospy.is_shutdown():
+            
             img = self.get_image()
 
             # self.height,self.width = img.shape[0:2]
@@ -33,17 +42,26 @@ class CameraCurrito():
             circles = cv2.HoughCircles(res,cv2.HOUGH_GRADIENT,1,600,param1=50,param2=12,minRadius=10,maxRadius=500)
             try:
                 circles = np.uint16(np.around(circles))
-                
+
                 for circle in circles[0,:]:
                     # print(circle)
                     # draw the outer circle
                     cv2.circle(img,(circle[0],circle[1]),circle[2],(0,255,0),2)
                     # draw the center of the circle
                     cv2.circle(img,(circle[0],circle[1]),2,(0,0,255),3)
+
+                # Publicamos la información del circulo
+                # Asumiendo que el circulo 0 sea el bueno
+                circle = circles[0,0]
+                self.msg_pelota.axes = [circle[0]/img.shape[0]*2-1, circle[1]/img.shape[1]*2-1, circle[2]]
+                self.pub.publish(self.msg_pelota)
+
+
             except:
                 pass
             cv2.imshow('detected circles',img)
-            cv2.waitKey(1)
+            cv2.waitKey(50)
+
     def get_mask(self,img):
         img = cv2.GaussianBlur(img, (11, 11), 0)
         hsv = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
@@ -61,8 +79,8 @@ class CameraCurrito():
             mask_B = cv2.dilate(mask_B, None, iterations=2)
             return mask_A+mask_B
         else:
-            lower_red_1 = np.array([125,15,203])
-            upper_red_1 = np.array([179,255,255])
+            lower_red_1 = np.array([150,43,183])
+            upper_red_1 = np.array([179,229,255])
             mask_A = cv2.inRange(hsv,lower_red_1,upper_red_1)
             mask_A = cv2.erode(mask_A, None, iterations=2)
             mask_A = cv2.dilate(mask_A, None, iterations=2)

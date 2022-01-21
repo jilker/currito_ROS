@@ -16,12 +16,12 @@
 
 // Orden de asignación de las consignas con los motores en ROS:   ceja_izq, ceja_der, cresta, cuello, cuerpo, boca
 
-#define PIN_CEJA_IZQ  2  // Sin PWM
+#define PIN_CEJA_IZQ  2   // Sin PWM
 #define PIN_CEJA_DER  5
 #define PIN_CRESTA    3
 #define PIN_CUELLO    9
 #define PIN_CUERPO    6
-#define PIN_BOCA      8      // Pin sin PWM. La boca no se controla aun desde python
+#define PIN_BOCA      8   // Sin PWM
 
 #define MIN_CEJA_IZQ  544
 #define MIN_CEJA_DER  544
@@ -38,7 +38,7 @@
 #define MAX_BOCA      2400
 
 
-// Ruedas
+// Ruedas: obligatorio que los pines de pulsos tengan PWM para analog_write (los de Dirección no)
 #define PIN_RUEDA_IZQ 10 // Con PWM
 #define PIN_RUEDA_DER 11 // Con PWM
 #define DIR_RUEDA_IZQ 12 // NO SE PUEDE USAR EL 4, es el ZUMBADOR

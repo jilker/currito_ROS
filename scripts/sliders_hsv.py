@@ -4,7 +4,7 @@ import numpy as np
 def callback(x):
     pass
 
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture("/dev/video0")
 cv2.namedWindow('image')
 
 ilowH = 160
