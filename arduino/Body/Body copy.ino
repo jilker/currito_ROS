@@ -4,12 +4,13 @@
 #include <WProgram.h>
 #endif
 
+#include <Adafruit_NeoPixel.h>
 #include <Servo.h>
 #include <ros.h>
 #include <sensor_msgs/Joy.h>
 #include <std_srvs/SetBool.h>
 #include <std_msgs/UInt16.h>
-#include <Adafruit_NeoPixel.h>
+#include <std_msgs/ColorRGBA.h>
 
 // Pines del Arduino UNO con PWM: 11, 10, 9, 6, 5, 3
 // Hay suficientes para: las dos ruedas, y 4 partes del cuerpo
@@ -51,16 +52,52 @@
 #define R 20
 #define G 60
 #define B 150
-ros::NodeHandle nh;
 
 class Body
 {
+private:
+  Servo ceja_izq_;
+  Servo ceja_der_;
+  Servo cresta_;
+  Servo cuello_;
+  Servo cuerpo_;
+  Servo boca_;
+
+  uint16_t ceja_izq_consigna_;
+  uint16_t ceja_der_consigna_;
+  uint16_t cresta_consigna_;
+  uint16_t cuello_consigna_;
+  uint16_t cuerpo_consigna_;
+  uint16_t boca_consigna_;
+  
+  int16_t rueda_izq_consigna_;
+  int16_t rueda_der_consigna_;
+
+  uint16_t setpoint_;
+  uint16_t prev_setpoint_;
+  int state_;
+  int iter_idle_;
+  Adafruit_NeoPixel tira_;
+
+  ros::Subscriber<std_msgs::ColorRGBA, Leds> subscriber_;
+  ros::Subscriber<sensor_msgs::Joy, Body> subscriber_;
 public:
   /*Funciones*/
   Body()
-      : subscriber_("/joy2", &Body::set_period_callback, this)
+      : subscriber_("/joy2", &Body::set_period_callback, this), 
+      subscriber_("/leds", &Leds::setPointCallback, this)
+
   {
+    tira_ = Adafruit_NeoPixel(NUMPIXELS, PIN_LEDS, NEO_GRB + NEO_KHZ800);
+    setpoint_ = 0;
+    state_ = 0;
+    iter_idle_= 0;
+    prev_setpoint_ = -1;
   }
+  void setPointCallback(const std_msgs::ColorRGBA &msg);
+  void clearTira();
+  void run();
+  void setStatus(const int value);
 
   /*Consignas*/
   void init(ros::NodeHandle &nh)
@@ -83,6 +120,13 @@ public:
     rueda_izq_consigna_ = 0;
     rueda_der_consigna_ = 0;
 
+    /* LEDS */
+    tira_.begin();
+    tira_.setBrightness(100);
+    clearTira();
+
+    /*SUBS*/ 
+    nh.subscribe(subscriber_); 
     nh.subscribe(subscriber_);
   }
 
@@ -150,61 +194,7 @@ public:
     rueda_izq_consigna_ = msg.axes[6];
     rueda_der_consigna_ = msg.axes[7];
   }
-
-private:
-  Servo ceja_izq_;
-  Servo ceja_der_;
-  Servo cresta_;
-  Servo cuello_;
-  Servo cuerpo_;
-  Servo boca_;
-
-  uint16_t ceja_izq_consigna_;
-  uint16_t ceja_der_consigna_;
-  uint16_t cresta_consigna_;
-  uint16_t cuello_consigna_;
-  uint16_t cuerpo_consigna_;
-  uint16_t boca_consigna_;
-  
-  int16_t rueda_izq_consigna_;
-  int16_t rueda_der_consigna_;
-
-  ros::Subscriber<sensor_msgs::Joy, Body> subscriber_;
 };
-
-class Leds
-{
-private:
-  uint16_t setpoint_;
-  uint16_t prev_setpoint_;
-  int state_;
-  int iter_idle_;
-  Adafruit_NeoPixel tira_;
-  ros::Subscriber<std_msgs::ColorRGBA, Leds> subscriber_;
-
-public:
-  Leds() : subscriber_("/leds", &Leds::setPointCallback, this)
-  {
-    tira_ = Adafruit_NeoPixel(NUMPIXELS, PIN_LEDS, NEO_GRB + NEO_KHZ800);
-    setpoint_ = 0;
-    state_ = 0;
-    iter_idle_= 0;
-    prev_setpoint_ = -1;
-  }
-  void init(ros::NodeHandle &nh);
-  void setPointCallback(const std_msgs::ColorRGBA &msg);
-  void clearTira();
-  void run();
-  void setStatus(const int value);
-};
-
-void Leds::init(ros::NodeHandle &nh)
-{
-  tira_.begin();
-  tira_.setBrightness(100);
-  clearTira();
-  nh.subscribe(subscriber_);
-}
 void Leds::run()
 {
   if (state_ == 0) // IDLE
@@ -294,8 +284,10 @@ void Leds::setPointCallback(const std_msgs::ColorRGBA &msg)
   setpoint_ = int(msg.a);
 }
 
+
 Body body;
-Leds leds;
+ros::NodeHandle nh;
+
 void setup()
 {
   // Pines de control de las ruedas como salidas
@@ -306,14 +298,13 @@ void setup()
   
   nh.initNode();
   body.init(nh);
-  leds.init(nh);
   leds.setStatus(2);
 }
 
 void loop()
 {
   body.syncro();
-  leds.run();
+  body.run();
   nh.spinOnce();
   delay(1);
 }
