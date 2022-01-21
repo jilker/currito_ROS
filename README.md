@@ -22,3 +22,9 @@ PIN_CUELLO    9
 PIN_CUERPO    6
 PIN_BOCA      8
 ```
+
+CRISTO 
+
+'''
+sudo modprobe bcm2835-v4l2
+'''

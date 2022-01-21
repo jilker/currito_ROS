@@ -4,7 +4,7 @@
 import argparse
 
 import numpy as np
-
+import time
 import cv2
 
 import rospy
@@ -13,24 +13,35 @@ from sensor_msgs.msg import Image
 # from sensor_msgs.msg import CameraInfo
 import numpy as np
 
+from cv_bridge import CvBridge, CvBridgeError
+
 from sensor_msgs.msg import Joy
+
 
 
 class CameraCurrito():
     def __init__(self):
         self.node = rospy.init_node("image_currito", anonymous=True)
         self.img_pub = rospy.Publisher("/camera/image_raw", Image,queue_size=10)
-        self.video = cv2.VideoCapture(0)
+        print("Initializing Camera")
+        self.video = cv2.VideoCapture("/dev/video0",cv2.CAP_V4L)
+        print("Camera initialized")
+        self.bridge = CvBridge()
+
         # self.height = 0
         # self.width = 0
 
         self.pub = rospy.Publisher("/datos_pelota", Joy, queue_size=10)
         self.msg_pelota = Joy()
+        self.FPS_target = 15
 
 
     def loop(self):
-        while not rospy.is_shutdown() and self.video.grab():
+        print("Running main loop")
+        while not rospy.is_shutdown():
+            start = time.time()
             img = self.get_image()
+            img = cv2.resize(img, (250, 250))
 
             # self.height,self.width = img.shape[0:2]
 
@@ -52,13 +63,26 @@ class CameraCurrito():
                 # Publicamos la información del circulo
                 # Asumiendo que el circulo 0 sea el bueno
                 circle = circles[0,0]
-                self.msg_pelota.axes = [circle[0]/1280*2-1, circle[1]/720*2-1, circle[2]]
+                self.msg_pelota.axes = [circle[0]/img.shape[0]*2-1, circle[1]/img.shape[1]*2-1, circle[2]]
                 self.pub.publish(self.msg_pelota)
-
-
             except:
                 pass
-            cv2.imshow('detected circles',img)
+            
+            try:
+                img_msg = self.bridge.cv2_to_imgmsg(img, encoding="bgr8")
+                # img_msg = bridge.cv2_to_imgmsg(img_out, "rgba8")
+                # img_msg.header.stamp = rospy.Time.now()
+                # img_msg.header.frame_id = 1
+                self.img_pub.publish(img_msg)
+
+            except CvBridgeError as err:
+                print(err)
+
+            if 1/(time.time()-start) > self.FPS_target:
+                time_to_wait = 1/self.FPS_target - (time.time()-start)
+                time.sleep(time_to_wait)
+            # cv2.imshow('detected circles',img)
+            print("FPS = ", 1/(time.time()-start))
             cv2.waitKey(1)
 
     def get_mask(self,img):
@@ -78,15 +102,14 @@ class CameraCurrito():
             mask_B = cv2.dilate(mask_B, None, iterations=2)
             return mask_A+mask_B
         else:
-            lower_red_1 = np.array([125,15,203])
-            upper_red_1 = np.array([179,255,255])
+            lower_red_1 = np.array([150,43,183])
+            upper_red_1 = np.array([179,229,255])
             mask_A = cv2.inRange(hsv,lower_red_1,upper_red_1)
             mask_A = cv2.erode(mask_A, None, iterations=2)
             mask_A = cv2.dilate(mask_A, None, iterations=2)
             return mask_A
     def get_image(self):
         tmp, img = self.video.read()
-        # cv2.imshow("test", img)
         if not tmp:
             print("Could not grab frame.")
             return 0

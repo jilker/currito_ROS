@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 import rospy
 from sensor_msgs.msg import Joy
-import subprocess, shlex, psutil
+import subprocess, shlex
+#import psutil
 import rosbag
 
 import time
@@ -105,10 +106,10 @@ class CurritoController():
         # Cuello y cuerpo: seguimiento pelota: movimiento a velocidad constante controlada hasta quedar mirándola
         # Si la rate de publicación es de 10Hz, y esto incrementa en 1, en principio es una velocidad de hasta 10º/s
         # Error Vertical -> movimiento Cuello
-        if(self.error_vertical>0 and self.cuello_consigna<180):
-            self.cuello_consigna = self.cuello_consigna + 1
-        elif (self.error_vertical<0 and self.cuello_consigna>0):
-            self.cuello_consigna = self.cuello_consigna - 1
+        if(self.error_vertical<0 and self.cuello_consigna<180):
+            self.cuello_consigna = self.cuello_consigna + 10
+        elif (self.error_vertical>0 and self.cuello_consigna>0):
+            self.cuello_consigna = self.cuello_consigna - 10
 
         # Error Horizontal -> movimiento Cuerpo
         if(self.error_horizontal>0 and self.cuerpo_consigna<180):
@@ -133,6 +134,8 @@ class CurritoController():
         # Las ruedas tienen mismo Avance, opuesta Rotación. Y además sus motores están puestos cada uno en un sentido
         self.rueda_izq_consigna =   avance + rotacion
         self.rueda_der_consigna = -(avance - rotacion)
+        
+        print(self.cuello_consigna)
 
 
 
@@ -149,14 +152,15 @@ class CurritoController():
         print("RECORD RUNNING")
 
     def end_record(self):
-        print("Trying to close the record")
-        self.recording = False
-        for proc in psutil.process_iter():
-            if "record" in proc.name() and set(self.command[2:]).issubset(proc.cmdline()):
-                proc.send_signal(subprocess.signal.SIGINT)
+        # print("Trying to close the record")
+        # self.recording = False
+        # for proc in psutil.process_iter():
+        #     if "record" in proc.name() and set(self.command[2:]).issubset(proc.cmdline()):
+        #         proc.send_signal(subprocess.signal.SIGINT)
 
-        self.rosbag_proc.send_signal(subprocess.signal.SIGINT)
-        print("RECORD CLOSED")
+        # self.rosbag_proc.send_signal(subprocess.signal.SIGINT)
+        # print("RECORD CLOSED")
+        pass
 
 
 # Marcelo: Esta funcion hay que revisarla. No estoy seguro de si entendí bien como funcionaba, pero en caso de que si, parece que escribia todos los mensajes
@@ -189,7 +193,7 @@ class CurritoController():
 
 
         # self.msg_arduino.buttons = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        self.msg_arduino.axes = [self.ceja_izq_consigna, self.ceja_der_consigna, self.cresta_consigna, self.cuello_consigna, self.cuerpo_consigna, self.boca_consigna, self.rueda_izq_consigna, self.rueda_der_consigna]
+        self.msg_arduino.axes = [self.ceja_izq_consigna, self.ceja_der_consigna, self.cuello_consigna, self.cresta_consigna, self.cuerpo_consigna, self.boca_consigna, self.rueda_izq_consigna, self.rueda_der_consigna]
         self.pub.publish(self.msg_arduino)
 
 
