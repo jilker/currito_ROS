@@ -37,7 +37,7 @@ class CameraCurrito():
 
         self.pub = rospy.Publisher("/datos_pelota", Joy, queue_size=10)
         self.msg_pelota = Joy()
-        self.FPS_target = 15
+        self.FPS_target = 3
 
 
     def loop(self):
@@ -47,7 +47,7 @@ class CameraCurrito():
             start = time.time()
 =======
         while not rospy.is_shutdown():
-            
+
 >>>>>>> dev
             img = self.get_image()
             img = cv2.resize(img, (250, 250))
@@ -77,7 +77,7 @@ class CameraCurrito():
             except:
                 pass
 <<<<<<< HEAD
-            
+
             try:
                 img_msg = self.bridge.cv2_to_imgmsg(img, encoding="bgr8")
                 # img_msg = bridge.cv2_to_imgmsg(img_out, "rgba8")

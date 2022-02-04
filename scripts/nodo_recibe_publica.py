@@ -43,7 +43,7 @@ class CurritoController():
         self.area_pelota = 0
 
         rospy.init_node('procesa_mando')
-        self.pub = rospy.Publisher("/joy2", Joy, queue_size=10)
+        self.pub = rospy.Publisher("/joy2", Joy, queue_size=1)
         # rospy.Timer(rospy.Duration(Ts), publica)
 
         rospy.Subscriber("/joy", Joy, self.callback)
@@ -134,7 +134,7 @@ class CurritoController():
         # Las ruedas tienen mismo Avance, opuesta Rotación. Y además sus motores están puestos cada uno en un sentido
         self.rueda_izq_consigna =   avance + rotacion
         self.rueda_der_consigna = -(avance - rotacion)
-        
+
         print(self.cuello_consigna)
 
 
