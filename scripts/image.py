@@ -25,9 +25,10 @@ class CameraCurrito():
         self.img_pub = rospy.Publisher("/camera/image_raw", Image,queue_size=10)
         print("Initializing Camera")
         self.video = cv2.VideoCapture("/dev/video0",cv2.CAP_V4L)
+        # self.video.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         print("Camera initialized")
         self.bridge = CvBridge()
-
+        self.counter = 0
         # self.height = 0
         # self.width = 0
 
@@ -43,59 +44,61 @@ class CameraCurrito():
             print("NOT READING HSV FILE")
             self.hsv_min = np.array([15.042006133540337, 154.2345059435631, 151.06768973892002],np.uint8)
             self.hsv_max = np.array([124.61171741707324, 198.58528129576243, 217.8428054394965],np.uint8)
-        print(self.hsv_min)
-        print(self.hsv_max)
-        self.FPS_target = 3
+        self.FPS_target = 5
 
 
     def loop(self):
         print("Running main loop")
         while not rospy.is_shutdown():
-            start = time.time()
-            img = self.get_image()
-            img = cv2.resize(img, (250, 250))
 
-            # self.height,self.width = img.shape[0:2]
+            if self.counter < int(30/self.FPS_target):
+                img = self.get_image()
+                if self.counter == 0:
+                    start = time.time()
 
-            mask = self.get_mask(img)
-            res = cv2.bitwise_and(img,img,mask=mask)
-            res = cv2.cvtColor(res,cv2.COLOR_BGR2GRAY)
+                self.counter += 1
+            else:
+                self.counter = 0
+                img = self.get_image()
+                img = cv2.resize(img, (250, 250))
 
-            circles = cv2.HoughCircles(res,cv2.HOUGH_GRADIENT,1,600,param1=50,param2=12,minRadius=10,maxRadius=500)
-            try:
-                circles = np.uint16(np.around(circles))
+                # self.height,self.width = img.shape[0:2]
 
-                for circle in circles[0,:]:
-                    # print(circle)
-                    # draw the outer circle
-                    cv2.circle(img,(circle[0],circle[1]),circle[2],(0,255,0),2)
-                    # draw the center of the circle
-                    cv2.circle(img,(circle[0],circle[1]),2,(0,0,255),3)
+                mask = self.get_mask(img)
+                # res = cv2.bitwise_and(img,img,mask=mask)
+                # res = cv2.cvtColor(res,cv2.COLOR_BGR2GRAY)
 
-                # Publicamos la información del circulo
-                # Asumiendo que el circulo 0 sea el bueno
-                circle = circles[0,0]
-                self.msg_pelota.axes = [circle[0]/img.shape[0]*2-1, circle[1]/img.shape[1]*2-1, circle[2]]
-                self.pub.publish(self.msg_pelota)
-            except:
-                pass
 
-            try:
-                img_msg = self.bridge.cv2_to_imgmsg(img, encoding="bgr8")
-                # img_msg = bridge.cv2_to_imgmsg(img_out, "rgba8")
-                # img_msg.header.stamp = rospy.Time.now()
-                # img_msg.header.frame_id = 1
-                self.img_pub.publish(img_msg)
 
-            except CvBridgeError as err:
-                print(err)
+                contours, _  = cv2.findContours(mask, cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+                if contours:
+                    c = max(contours, key=cv2.contourArea)
 
-            if 1/(time.time()-start) > self.FPS_target:
-                time_to_wait = 1/self.FPS_target - (time.time()-start)
-                time.sleep(time_to_wait)
-            # cv2.imshow('detected circles',img)
-            print("FPS = ", 1/(time.time()-start))
-            cv2.waitKey(1)
+                    ((x, y), radius) = cv2.minEnclosingCircle(c)
+                    try:
+                        cv2.circle(img, (int(x),int(y)), 15, (0, 0, 255), -1)
+                    except:
+                        pass
+                
+                    self.msg_pelota.axes = [x/img.shape[0]*2-1, y/img.shape[1]*2-1, radius]
+                    self.pub.publish(self.msg_pelota)
+
+                try:
+                    img_msg = self.bridge.cv2_to_imgmsg(img, encoding="bgr8")
+                    # img_msg = bridge.cv2_to_imgmsg(img_out, "rgba8")
+                    # img_msg.header.stamp = rospy.Time.now()
+                    # img_msg.header.frame_id = 1
+                    self.img_pub.publish(img_msg)
+
+                except CvBridgeError as err:
+                    print(err)
+
+                # if 1/(time.time()-start) > self.FPS_target:
+                #     time_to_wait = 1/self.FPS_target - (time.time()-start)
+                #     time.sleep(time_to_wait)
+                cv2.imshow('detected circles',img)
+                print("FPS = ", 1/(time.time()-start))
+                cv2.waitKey(1)
 
     def get_mask(self,img):
 
@@ -105,29 +108,8 @@ class CameraCurrito():
 
 
         threshed_image = cv2.morphologyEx(threshed_image, cv2.MORPH_CLOSE, self.kernel)
+        return threshed_image
 
-        img = cv2.GaussianBlur(img, (11, 11), 0)
-        hsv = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
-        color = 0
-        if color == 1:
-            lower_red_1 = np.array([160,100,20])
-            upper_red_1 = np.array([175,255,255])
-            mask_A = cv2.inRange(hsv,lower_red_1,upper_red_1)
-            mask_A = cv2.erode(mask_A, None, iterations=2)
-            mask_A = cv2.dilate(mask_A, None, iterations=2)
-            lower_red_2 = np.array([0,100,10])
-            upper_red_2 = np.array([10,255,255])
-            mask_B = cv2.inRange(hsv,lower_red_2,upper_red_2)
-            mask_B = cv2.erode(mask_B, None, iterations=2)
-            mask_B = cv2.dilate(mask_B, None, iterations=2)
-            return mask_A+mask_B
-        else:
-            lower_red_1 = np.array([150,43,183])
-            upper_red_1 = np.array([179,229,255])
-            mask_A = cv2.inRange(hsv,lower_red_1,upper_red_1)
-            mask_A = cv2.erode(mask_A, None, iterations=2)
-            mask_A = cv2.dilate(mask_A, None, iterations=2)
-            return mask_A
     def get_image(self):
         tmp, img = self.video.read()
         if not tmp:
