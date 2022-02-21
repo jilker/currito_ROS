@@ -73,8 +73,8 @@ public:
     boca_consigna_ = 90;
 
     /* Ruedas */
-    rueda_izq_.attach( PIN_RUEDA_IZQ,   0,   20000);
-    rueda_der_.attach( PIN_RUEDA_DER,   0,   20000);
+    rueda_izq_.attach( PIN_RUEDA_IZQ,   0,   65535);  // 2 ^16 - 1
+    rueda_der_.attach( PIN_RUEDA_DER,   0,   65535);
     rueda_izq_consigna_ = 0;
     rueda_der_consigna_ = 0;
 
