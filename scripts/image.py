@@ -23,32 +23,35 @@ class CameraCurrito():
     def __init__(self):
         self.node = rospy.init_node("image_currito", anonymous=True)
         self.img_pub = rospy.Publisher("/camera/image_raw", Image,queue_size=10)
-<<<<<<< HEAD
         print("Initializing Camera")
         self.video = cv2.VideoCapture("/dev/video0",cv2.CAP_V4L)
         print("Camera initialized")
         self.bridge = CvBridge()
 
-=======
-        self.video = cv2.VideoCapture("/dev/video0")
->>>>>>> dev
         # self.height = 0
         # self.width = 0
 
         self.pub = rospy.Publisher("/datos_pelota", Joy, queue_size=10)
         self.msg_pelota = Joy()
+
+        self.kernel = np.ones((4,4),np.uint8)
+        try:
+            with open("hsv.txt", "r") as f:
+                self.hsv_min = np.array(f.readline(),np.uint8)
+                self.hsv_max = np.array(f.readline(),np.uint8)
+        except:
+            print("NOT READING HSV FILE")
+            self.hsv_min = np.array([15.042006133540337, 154.2345059435631, 151.06768973892002],np.uint8)
+            self.hsv_max = np.array([124.61171741707324, 198.58528129576243, 217.8428054394965],np.uint8)
+        print(self.hsv_min)
+        print(self.hsv_max)
         self.FPS_target = 3
 
 
     def loop(self):
-<<<<<<< HEAD
         print("Running main loop")
         while not rospy.is_shutdown():
             start = time.time()
-=======
-        while not rospy.is_shutdown():
-
->>>>>>> dev
             img = self.get_image()
             img = cv2.resize(img, (250, 250))
 
@@ -76,7 +79,6 @@ class CameraCurrito():
                 self.pub.publish(self.msg_pelota)
             except:
                 pass
-<<<<<<< HEAD
 
             try:
                 img_msg = self.bridge.cv2_to_imgmsg(img, encoding="bgr8")
@@ -94,12 +96,16 @@ class CameraCurrito():
             # cv2.imshow('detected circles',img)
             print("FPS = ", 1/(time.time()-start))
             cv2.waitKey(1)
-=======
-            cv2.imshow('detected circles',img)
-            cv2.waitKey(50)
->>>>>>> dev
 
     def get_mask(self,img):
+
+        hsv_image = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
+
+        threshed_image = cv2.inRange(hsv_image, self.hsv_min, self.hsv_max)
+
+
+        threshed_image = cv2.morphologyEx(threshed_image, cv2.MORPH_CLOSE, self.kernel)
+
         img = cv2.GaussianBlur(img, (11, 11), 0)
         hsv = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
         color = 0
