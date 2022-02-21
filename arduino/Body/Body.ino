@@ -105,30 +105,31 @@ public:
 
     /* Aplicación de las consignas de las ruedas*/
     /* Rueda izquierda*/
-    if(rueda_izq_consigna_ >= 0)
-    {
-      digitalWrite(DIR_RUEDA_IZQ, HIGH);
-      analogWrite(PIN_RUEDA_IZQ, rueda_izq_consigna_);
-    }
-    else
-    {
-      digitalWrite(DIR_RUEDA_IZQ, LOW);
-      analogWrite(PIN_RUEDA_IZQ, -rueda_izq_consigna_);
-    }
-    
-    /* Rueda derecha*/
-    if(rueda_der_consigna_ >= 0)
-    {
-      digitalWrite(DIR_RUEDA_DER, HIGH);
-      analogWrite(PIN_RUEDA_DER, rueda_der_consigna_);
-      
-    }
-    else
-    {
-      digitalWrite(DIR_RUEDA_DER, LOW);
-      analogWrite(PIN_RUEDA_DER, -rueda_der_consigna_);
-    }
-    
+//    if(rueda_izq_consigna_ >= 0)
+//    {
+//      digitalWrite(DIR_RUEDA_IZQ, HIGH);
+//      analogWrite(PIN_RUEDA_IZQ, rueda_izq_consigna_);
+//    }
+//    else
+//    {
+//      rueda_izq_consigna_ = -rueda_izq_consigna_;
+//      digitalWrite(DIR_RUEDA_IZQ, LOW);
+//      analogWrite(PIN_RUEDA_IZQ, rueda_izq_consigna_);
+//    }
+//    
+//    /* Rueda derecha*/
+//    if(rueda_der_consigna_ >= 0)
+//    {
+//      digitalWrite(DIR_RUEDA_DER, HIGH);
+//      analogWrite(PIN_RUEDA_DER, rueda_der_consigna_);
+//      
+//    }
+//    else
+//    {
+//      rueda_der_consigna_ = -rueda_der_consigna_;
+//      digitalWrite(DIR_RUEDA_DER, LOW);
+//      analogWrite(PIN_RUEDA_DER, rueda_der_consigna_);
+//    }    
   }
 
   void set_period_callback(const sensor_msgs::Joy &msg)
