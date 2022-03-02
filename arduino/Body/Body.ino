@@ -103,6 +103,7 @@ public:
     cuerpo_.write(    cuerpo_consigna_);
     boca_.write(      boca_consigna_);
 
+    /* NO FUNCIONA EN ARDUINO UNO*/
     /* Aplicación de las consignas de las ruedas*/
     /* Rueda izquierda*/
 //    if(rueda_izq_consigna_ >= 0)

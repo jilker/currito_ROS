@@ -25,7 +25,6 @@ class CameraCurrito():
         self.img_pub = rospy.Publisher("/camera/image_raw", Image,queue_size=10)
         print("Initializing Camera")
         self.video = cv2.VideoCapture("/dev/video0",cv2.CAP_V4L)
-        # self.video.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         print("Camera initialized")
         self.bridge = CvBridge()
         self.counter = 0
@@ -62,13 +61,7 @@ class CameraCurrito():
                 img = self.get_image()
                 img = cv2.resize(img, (250, 250))
 
-                # self.height,self.width = img.shape[0:2]
-
                 mask = self.get_mask(img)
-                # res = cv2.bitwise_and(img,img,mask=mask)
-                # res = cv2.cvtColor(res,cv2.COLOR_BGR2GRAY)
-
-
 
                 contours, _  = cv2.findContours(mask, cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
                 if contours:
@@ -85,17 +78,11 @@ class CameraCurrito():
 
                 try:
                     img_msg = self.bridge.cv2_to_imgmsg(img, encoding="bgr8")
-                    # img_msg = bridge.cv2_to_imgmsg(img_out, "rgba8")
-                    # img_msg.header.stamp = rospy.Time.now()
-                    # img_msg.header.frame_id = 1
                     self.img_pub.publish(img_msg)
 
                 except CvBridgeError as err:
                     print(err)
 
-                # if 1/(time.time()-start) > self.FPS_target:
-                #     time_to_wait = 1/self.FPS_target - (time.time()-start)
-                #     time.sleep(time_to_wait)
                 cv2.imshow('detected circles',img)
                 print("FPS = ", 1/(time.time()-start))
                 cv2.waitKey(1)

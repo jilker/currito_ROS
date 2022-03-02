@@ -1,5 +1,4 @@
 import cv2
-from matplotlib import image
 import numpy as np
 
 class FindHSV:
@@ -13,8 +12,8 @@ class FindHSV:
             image_ori = frame.copy()
 
             self.h, self.w = frame.shape[:2] 
-            roi = [(int(self.w/2 * 0.8), int(self.h/2 * 0.8)), (int(self.w/2 * 1.2), int(self.h/2 * 1.2))]
-            cv2.rectangle(frame, roi[0], roi[1], (255,0,0))
+            roi = [(int(self.w/2 * 0.85), int(self.h/2 * 0.8)), (int(self.w/2 * 1.15), int(self.h/2 * 1.2))]
+            cv2.rectangle(frame, roi[0], roi[1], (0,0,255), 3)
 
 
             key = cv2.waitKey(1)
@@ -24,7 +23,7 @@ class FindHSV:
 
                 self.image = image_ori
                 break
-            cv2.imshow("JAJA SALUDOS", frame)
+            cv2.imshow("Place object inside the circle", frame)
     
 
         self.image_ori = self.image.copy()
@@ -42,7 +41,7 @@ class FindHSV:
                 c = contours[0]
                 ((x, y), radius) = cv2.minEnclosingCircle(c)
                 # print(contours.__len__(),x, y, radius, cv2.contourArea(c), c)
-                return False, False, False, False, False
+                return x, y, radius, np.sum(image == 255), c
 
             elif contours.__len__() > 1 and contours.__len__() < 5:
                 c = max(contours, key=cv2.contourArea)
@@ -50,8 +49,8 @@ class FindHSV:
                 ((x, y), radius) = cv2.minEnclosingCircle(c)
                 # print(contours[0])
                 # print(contours.__len__(),x, y, radius, cv2.contourArea(c), c)
-                return x, y, radius, cv2.contourArea(c), c
-
+                return x, y, radius, np.sum(image == 255), c
+        
         return False, False, False, False, False
 
 
@@ -93,7 +92,7 @@ class FindHSV:
 
             ORANGE_MIN = np.array([h_low[i], s_low[i], v_low[i]],np.uint8)
             ORANGE_MAX = np.array([h_high[i], s_high[i], v_high[i]],np.uint8)
-            hsv_in = cv2.cvtColor(self.image,cv2.COLOR_BGR2HSV)
+            hsv_in = cv2.cvtColor(self.image_ori,cv2.COLOR_BGR2HSV)
 
 
             threshed_in = cv2.inRange(hsv_in, ORANGE_MIN, ORANGE_MAX)
@@ -105,9 +104,9 @@ class FindHSV:
 
 
             if x:
-                if x < self.w/2 * 1.2 and x > self.w/2 * 0.8  and y < self.h/2 * 1.2 and y > self.h/2 * 0.8:
-                    if radius > best_val:
-                        best_val = radius
+                if x < self.w/2 * 1.15 and x > self.w/2 * 0.85  and y < self.h/2 * 1.2 and y > self.h/2 * 0.8 and radius <  self.w/2 * 0.2:
+                    if area > best_val:
+                        best_val = area
                         best_i = i
 
 
@@ -144,6 +143,7 @@ class FindHSV:
 
                 center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
                 cv2.circle(self.image, center, 5, (0, 0, 255), -1)
+                cv2.circle(self.image, center, int(radius), (0, 255, 0), 2)
             except:
                 pass
 
